@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ուղու պատկեր</title>
+<style>
+:root{--bg:#fff;--fg:#1f2430;--muted:#6b7280;--grid:#e5e7eb;--axis:#374151;--accent:#d9480f;--btn:#eef2ff;--btnb:#c7d2fe;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161c;--fg:#e8eaf0;--muted:#9aa3b2;--grid:#2a2f3a;--axis:#c9ceda;--accent:#ff8a4c;--btn:#232a45;--btnb:#3b4577}}
+:root[data-theme="dark"]{--bg:#14161c;--fg:#e8eaf0;--muted:#9aa3b2;--grid:#2a2f3a;--axis:#c9ceda;--accent:#ff8a4c;--btn:#232a45;--btnb:#3b4577}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100dvh;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;align-items:center}
+.title{width:100%;max-width:560px;box-sizing:border-box;font:inherit;font-size:20px;font-weight:700;text-align:center;border:none;border-bottom:2px dashed var(--btnb);background:transparent;color:var(--fg);padding:6px 4px;margin-bottom:6px;border-radius:0;outline:none}
+.note{color:var(--muted);margin:0 0 12px;text-align:center}
+.wrap{width:100%;max-width:560px}
+svg{width:100%;height:auto;display:block;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,64px);gap:8px;max-width:340px;margin:12px auto}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--btnb);border-radius:10px;cursor:pointer;padding:4px}
+button:active{transform:scale(.96)}
+.n{grid-column:2;grid-row:1}.w{grid-column:1;grid-row:2}.e{grid-column:3;grid-row:2}.s{grid-column:2;grid-row:3}
+.mid{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;max-width:360px;margin:0 auto;font-size:16px}
+.info b{color:var(--accent)}
+.row{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.row button{padding:8px 14px}
+</style>
+</head>
+<body>
+<input id="topic" class="title" type="text" maxlength="80" placeholder="Գրիր թեմայի անունը" aria-label="Թեմայի անունը">
+<p class="note">1 քայլ = 10 օր։ Սեղմիր սլաքները՝ քայլերը ավելացնելու համար, հետո սեղմիր OK՝ պատկերը կառուցելու համար։</p>
+<div class="wrap">
+<svg id="map" viewBox="0 0 620 620" role="img" aria-label="Կոորդինատային առանցք"></svg>
+<div class="pad">
+<button class="n" data-d="n">▲<br>Հյուսիս</button>
+<button class="w" data-d="w">◀<br>Արևմուտք</button>
+<div class="mid">1 սեղմում<br>= 10 օր</div>
+<button class="e" data-d="e">▶<br>Արևելք</button>
+<button class="s" data-d="s">▼<br>Հարավ</button>
+</div>
+<div class="info">
+<span>Հյուսիս՝ <b id="cn">0</b> օր</span><span>Արևելք՝ <b id="ce">0</b> օր</span>
+<span>Հարավ՝ <b id="cs">0</b> օր</span><span>Արևմուտք՝ <b id="cw">0</b> օր</span>
+</div>
+<div class="row"><button id="ok" style="font-weight:700;font-size:20px;padding:12px 56px;background:var(--accent);color:#fff;border-color:var(--accent)">OK</button></div>
+<p class="note" id="wind" style="margin-top:12px"></p>
+<div class="row"><button id="undo">↶ Հետ</button><button id="reset">Մաքրել</button></div>
+</div>
+<script>
+var R=10,C=28,O=310,E=22,NS="http://www.w3.org/2000/svg";
+var V={n:[0,1],e:[1,0],s:[0,-1],w:[-1,0]};
+var NAME={n:"Հյուսիս",e:"Արևելք",s:"Հարավ",w:"Արևմուտք"};
+var c={n:0,e:0,s:0,w:0},hist=[],built=false;
+var svg=document.getElementById("map");
+function el(t,a,txt){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(txt!==undefined)e.textContent=txt;return e}
+function X(x){return O+x*C}function Y(y){return O-y*C}
+function pt(d){return [V[d][0]*c[d],V[d][1]*c[d]]}
+function draw(){
+svg.innerHTML="";
+for(var i=-R;i<=R;i++){
+svg.appendChild(el("line",{x1:X(i),y1:Y(-R),x2:X(i),y2:Y(R),stroke:"var(--grid)","stroke-width":1}));
+svg.appendChild(el("line",{x1:X(-R),y1:Y(i),x2:X(R),y2:Y(i),stroke:"var(--grid)","stroke-width":1}));
+}
+var a={stroke:"var(--axis)","stroke-width":2};
+svg.appendChild(el("line",Object.assign({x1:X(-R)-E+8,y1:O,x2:X(R)+E-8,y2:O},a)));
+svg.appendChild(el("line",Object.assign({x1:O,y1:Y(-R)+E-8,x2:O,y2:Y(R)-E+8},a)));
+for(var i=-R;i<=R;i++){if(i===0)continue;
+svg.appendChild(el("line",{x1:X(i),y1:O-5,x2:X(i),y2:O+5,stroke:"var(--axis)","stroke-width":1.5}));
+svg.appendChild(el("line",{x1:O-5,y1:Y(i),x2:O+5,y2:Y(i),stroke:"var(--axis)","stroke-width":1.5}));}
+var order=["n","e","s","w"],P=[];
+order.forEach(function(d){if(c[d]>0)P.push(pt(d))});
+var s=P.map(function(p){return X(p[0])+","+Y(p[1])}).join(" ");
+if(built&&P.length>=3)svg.appendChild(el("polygon",{points:s,fill:"var(--accent)","fill-opacity":.18,stroke:"var(--accent)","stroke-width":3,"stroke-linejoin":"round"}));
+else if(built&&P.length===2)svg.appendChild(el("polyline",{points:s,fill:"none",stroke:"var(--accent)","stroke-width":3}));
+order.forEach(function(d){if(c[d]>0){var p=pt(d);
+svg.appendChild(el("line",{x1:O,y1:O,x2:X(p[0]),y2:Y(p[1]),stroke:"var(--accent)","stroke-width":4,"stroke-linecap":"round"}));}});
+var t={"font-size":20,"font-weight":700,fill:"var(--accent)"};
+order.forEach(function(d){if(c[d]>0){var p=pt(d),x=X(p[0]),y=Y(p[1]);
+svg.appendChild(el("circle",{cx:x,cy:y,r:5,fill:"var(--accent)"}));
+var tx=x+V[d][0]*10+(d==="n"||d==="s"?10:0),ty=y-V[d][1]*10+(d==="e"||d==="w"?-10:0)+(d==="s"?14:0)+(d==="n"?-2:0);
+svg.appendChild(el("text",Object.assign({x:tx,y:ty,"text-anchor":d==="w"?"end":"start"},t),c[d]*10));}});
+svg.appendChild(el("circle",{cx:O,cy:O,r:5,fill:"var(--fg)"}));
+var L={fill:"var(--fg)","font-size":20,"font-weight":700};
+svg.appendChild(el("text",Object.assign({x:O+16,y:22},L),"Հյուսիս"));
+svg.appendChild(el("text",Object.assign({x:O+16,y:612},L),"Հարավ"));
+svg.appendChild(el("text",Object.assign({x:616,y:O+30,"text-anchor":"end"},L),"Արևելք"));
+svg.appendChild(el("text",Object.assign({x:4,y:O+30},L),"Արևմուտք"));
+[["e","M"+(X(R)+E)+","+O+" l-16,-9 v18z"],["w","M"+(X(-R)-E)+","+O+" l16,-9 v18z"],["n","M"+O+","+(Y(R)-E+6)+" l-9,16 h18z"],["s","M"+O+","+(Y(-R)+E-6)+" l-9,-16 h18z"]].forEach(function(q){
+var ar=el("path",{d:q[1],fill:"var(--accent)",stroke:"rgba(0,0,0,0)","stroke-width":26,"stroke-linejoin":"round",style:"cursor:pointer"});
+ar.addEventListener("click",function(){move(q[0])});
+svg.appendChild(ar);});
+var mx=Math.max(c.n,c.e,c.s,c.w),top=order.filter(function(d){return c[d]===mx}),wn=document.getElementById("wind");
+var OPP={n:"s",s:"n",e:"w",w:"e"},ABL={n:"հյուսիսից",e:"արևելքից",s:"հարավից",w:"արևմուտքից"},LOC={n:"հյուսիսում",e:"արևելքում",s:"հարավում",w:"արևմուտքում"};
+if(built&&mx>0&&top.length===1){var o=OPP[top[0]],dist=Math.max(3,Math.min(8,c[o]*0.6+1)),px=V[o][0]*dist,py=V[o][1]*dist;
+if(o==="n"||o==="s")px-=2.6;else py+=2.6;
+svg.appendChild(el("text",{x:X(px),y:Y(py)+12,"text-anchor":"middle","font-size":36,"pointer-events":"none"},"🏭"));
+wn.textContent="Քամին ամենաշատ փչում է "+ABL[top[0]]+", ուստի գործարանը դրվում է "+LOC[o]+"։";
+}else wn.textContent=(built&&mx>0&&top.length>1)?"Մի քանի ուղղություն հավասար են, գործարանը չի դրվում։":"";
+order.forEach(function(d){document.getElementById("c"+d).textContent=c[d]*10});
+}
+function move(d){if(c[d]>=R)return;built=false;c[d]++;hist.push(d);draw()}
+document.querySelectorAll("[data-d]").forEach(function(b){b.onclick=function(){move(b.dataset.d)}});
+document.getElementById("undo").onclick=function(){built=false;var d=hist.pop();if(d){c[d]--;draw()}};
+document.getElementById("reset").onclick=function(){c={n:0,e:0,s:0,w:0};hist=[];built=false;draw()};
+document.addEventListener("keydown",function(e){
+var m={ArrowUp:"n",ArrowDown:"s",ArrowRight:"e",ArrowLeft:"w"}[e.key];
+if(m){e.preventDefault();move(m)}});
+document.getElementById("ok").onclick=function(){built=true;draw()};
+var tp=document.getElementById("topic");
+try{tp.value=localStorage.getItem("topic")||""}catch(e){}
+tp.addEventListener("input",function(){try{localStorage.setItem("topic",tp.value)}catch(e){}});
+tp.addEventListener("keydown",function(e){e.stopPropagation()});
+draw();
+</script>
+</body>
+</html>
